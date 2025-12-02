@@ -1,9 +1,9 @@
-name: Deploy FAQ to Pages
+name: Publish FAQ
 
 on:
   push:
     branches:
-      - main   # or any branch you prefer
+      - main
 
 permissions:
   contents: read
@@ -15,12 +15,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      # Upload the folder as the artifact to be published
+      - name: Prepare FAQ structure
+        shell: bash
+        run: |
+          mkdir -p public/faq
+          cp -rf faq/* public/faq/
       - name: Upload FAQ artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: faq  # 👈 the folder you want to publish
+          path: public
 
   deploy:
     needs: build
