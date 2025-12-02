@@ -1,0 +1,123 @@
+name: Publish Terms
+
+on:
+  push:
+    tags:
+      - 'general-v*'  # Tags for General T&Cs versions (e.g., general-v1.0.0)
+      - 'pool'        # Tag for Pool T&Cs (single entity for now, no versioning)
+      - 'pocket-v*'   # Tags for Pocket T&Cs versions (single entity for now, versioning. e.g., pocket-v1.0.0)
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Prepare paths
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p public
+          touch public/.nojekyll
+
+          ref="${GITHUB_REF_NAME}"
+
+          if [[ "$ref" == general-v* ]]; then
+            version="${ref#general-}"                  # vX.Y.Z
+            mkdir -p "public/general/versions/${version}"
+            cp -f "general/terms.md" "public/general/versions/${version}/terms.md"
+            cp -f "public/general/versions/${version}/terms.md" "public/general/terms.md"
+            printf '%s\n' "${version}" > "public/general/version.txt"
+
+          elif [[ "$ref" == pocket-v* ]]; then
+            version="${ref#pocket-}"                   # vX.Y.Z
+            mkdir -p "public/pocket/versions/${version}"
+            cp -f "pocket/terms.md" "public/pocket/versions/${version}/terms.md"
+            cp -f "public/pocket/versions/${version}/terms.md" "public/pocket/terms.md"
+            printf '%s\n' "${version}" > "public/pocket/version.txt"
+
+          elif [[ "$ref" == pool ]]; then
+            mkdir -p "public/pool"
+            cp -f "pool/terms.md" "public/pool/terms.md"
+
+          else
+            echo "Unrecognized tag: ${ref}" >&2
+            exit 1
+          fi
+
+      - name: Compute integrity
+        shell: bash
+        run: |
+          set -euo pipefail
+          ref="${GITHUB_REF_NAME}"
+          OWNER="${GITHUB_REPOSITORY_OWNER:-${GITHUB_REPOSITORY%%/*}}"
+          REPO="${GITHUB_REPOSITORY#*/}"
+          BASE_URL="https://${OWNER}.github.io/${REPO}"
+
+          if [[ "$ref" == general-v* ]]; then
+            type="general"
+            version="${ref#general-}"
+            terms_file="public/${type}/versions/${version}/terms.md"
+            version_dir="public/${type}/versions/${version}"
+            latest_dir="public/${type}"
+
+          elif [[ "$ref" == pocket-v* ]]; then
+            type="pocket"
+            version="${ref#pocket-}"
+            terms_file="public/${type}/versions/${version}/terms.md"
+            version_dir="public/${type}/versions/${version}"
+            latest_dir="public/${type}"
+
+          elif [[ "$ref" == pool ]]; then
+            type="pool"
+            version=""
+            terms_file="public/${type}/terms.md"
+            version_dir="public/${type}"
+            latest_dir=""
+
+          else
+            echo "Unrecognized tag: ${ref}" >&2
+            exit 1
+          fi
+
+          [[ -f "$terms_file" ]] || { echo "Terms file not found: $terms_file" >&2; exit 1; }
+
+          sed -i 's/\r$//' "$terms_file"
+          tail -c1 "$terms_file" | read -r _ || echo >> "$terms_file"
+
+          checksum=$(openssl dgst -sha256 -binary "$terms_file" | base64)
+          integrity="sha256-${checksum}"
+          timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          rel_path="${terms_file#public/}"
+          url="${BASE_URL}/${rel_path}"
+
+          cat > "${version_dir}/integrity.json" <<EOF
+          {
+            "type": "${type}",
+            "version": "${version}",
+            "url": "${url}",
+            "mimetype": "text/markdown",
+            "integrity": "${integrity}",
+            "createdAt": "${timestamp}"
+          }
+          EOF
+
+          if [[ -n "${latest_dir}" ]]; then
+            cp -f "${version_dir}/integrity.json" "${latest_dir}/integrity.json"
+          fi
+
+      - name: Deploy to gh-pages (keep history)
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: public
+          keep_files: true
