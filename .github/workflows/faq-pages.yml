@@ -2,8 +2,9 @@ name: Publish FAQ
 
 on:
   push:
-    branches:
-      - main
+    tags:
+      - 'faq'
+  workflow_dispatch:
 
 permissions:
   contents: read
