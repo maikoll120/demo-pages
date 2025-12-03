@@ -1,8 +1,8 @@
-## What is the purpose of this service?
-Our service allows users to manage their digital assets efficiently.
+## What is Multi-Factor Authentication?
+MFA adds an extra layer of security by requiring a second form of verification in addition to your password. This helps protect your account even if your password is compromised.
 
-## How do I connect my wallet?
-You can connect your wallet using PeraWallet, Defly, or any WalletConnect-compatible app.
+## Which method should I use?
+Authenticator apps are generally more secure than SMS, as they're not vulnerable to SIM swapping attacks. However, SMS is more convenient if you don't have your phone with you.
 
-## What blockchains do you support?
-We currently support Algorand, with more coming soon.
+## How does this protect me?
+Even if someone gains access to your password, they won't be able to log in without the second factor. This significantly reduces the risk of unauthorized access to your account.
