@@ -7,33 +7,40 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Prepare FAQ structure
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Prepare paths
         shell: bash
         run: |
-          mkdir -p public/faq
-          cp -rf faq/* public/faq/
-      - name: Upload FAQ artifact
-        uses: actions/upload-pages-artifact@v3
+          set -euo pipefail
+          mkdir -p public
+          touch public/.nojekyll
+
+          ref="${GITHUB_REF_NAME}"
+
+          if [[ "$ref" == faq ]]; then
+            mkdir -p "public/faq"
+            cp -rf faq/* public/faq/
+
+          else
+            echo "Unrecognized tag: ${ref}" >&2
+            exit 1
+          fi
+
+      - name: Deploy to gh-pages (keep history)
+        uses: peaceiris/actions-gh-pages@v3
         with:
-          path: public
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: public
+          keep_files: true
