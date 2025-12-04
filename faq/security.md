@@ -1,4 +1,4 @@
-## What is Multi-Factor Authentication? v3
+## What is Multi-Factor Authentication? v4
 MFA adds an extra layer of security by requiring a second form of verification in addition to your password. This helps protect your account even if your password is compromised.
 
 ## Which method should I use?
