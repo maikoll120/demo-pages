@@ -1,4 +1,4 @@
-# Pool Example Terms & Conditions
+# Pool Example Terms & Conditions v2
 
 ## 1. Pool Coverage
 
